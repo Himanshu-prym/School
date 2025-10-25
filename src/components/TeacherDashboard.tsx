@@ -41,6 +41,7 @@ const TeacherDashboard: React.FC = () => {
   const [profile, setProfile] = useState<any | null>(null);
   const [studentsCount, setStudentsCount] = useState<number | null>(null);
   const [teacherMap, setTeacherMap] = useState<Record<string,string>>({});
+  const [classTeacherSection, setClassTeacherSection] = useState<string | null>(null);
 
   const loadHomeworks = async () => {
     try {
@@ -143,8 +144,17 @@ const TeacherDashboard: React.FC = () => {
                 if (firstSubject) setSubject(firstSubject);
               }
             }
+
+            const { data: classTeacher } = await supabase
+              .from('class_teachers')
+              .select('class_section')
+              .eq('teacher_id', teacherUuid)
+              .maybeSingle();
+
+            if (classTeacher) {
+              setClassTeacherSection(classTeacher.class_section);
+            }
           } else {
-            // No teacher UUID could be determined; leave availableClassSections empty and log for debugging
             console.warn('Could not resolve teacher UUID for:', found);
           }
         }
@@ -356,12 +366,12 @@ const TeacherDashboard: React.FC = () => {
           </div>
           <div className="mt-6 grid grid-cols-2 gap-4 text-white">
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
-              <div className="text-xs opacity-75">Class-Sections</div>
+              <div className="text-xs opacity-75">Teaching Classes</div>
               <div className="text-sm font-medium mt-1">{availableClassSections.length > 0 ? availableClassSections.join(', ') : '—'}</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
-              <div className="text-xs opacity-75">Total Assignments</div>
-              <div className="text-sm font-medium mt-1">{availableClassSections.length} Class-Section(s)</div>
+              <div className="text-xs opacity-75">Class Teacher of</div>
+              <div className="text-sm font-medium mt-1">{classTeacherSection || 'Not a class teacher'}</div>
             </div>
           </div>
         </div>
@@ -374,25 +384,18 @@ const TeacherDashboard: React.FC = () => {
           <form onSubmit={handleAssign} className="bg-white rounded-2xl shadow-lg p-6 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Class-Section *</label>
-              {availableClassSections.length > 0 ? (
-                <select
-                  value={classSection}
-                  onChange={e => {
-                    setClassSection(e.target.value);
-                  }}
-                  className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {availableClassSections.map(cs => <option key={cs} value={cs}>{cs}</option>)}
-                </select>
-              ) : (
-                <input
-                  value={classSection}
-                  onChange={e => setClassSection(e.target.value)}
-                  className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter class-section"
-                />
-              )}
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Select Class for Homework *</label>
+              <select
+                value={classSection}
+                onChange={e => {
+                  setClassSection(e.target.value);
+                }}
+                className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="">Select Class-Section</option>
+                {availableClassSections.map(cs => <option key={cs} value={cs}>{cs}</option>)}
+              </select>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">Submission Date</label>

@@ -256,42 +256,37 @@ const UsersManagement: React.FC<{ adminId?: string }> = () => {
 };
 
 const TeacherClassDisplay: React.FC<{ teacherId: string }> = ({ teacherId }) => {
-  const [classSections, setClassSections] = useState<any[]>([]);
+  const [classTeacherSection, setClassTeacherSection] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadClassSections();
+    loadClassTeacher();
   }, [teacherId]);
 
-  const loadClassSections = async () => {
+  const loadClassTeacher = async () => {
     setLoading(true);
     const { data } = await supabase
-      .from('teacher_class_sections')
-      .select('*')
-      .eq('teacher_id', teacherId);
+      .from('class_teachers')
+      .select('class_section')
+      .eq('teacher_id', teacherId)
+      .maybeSingle();
 
     if (data) {
-      setClassSections(data);
+      setClassTeacherSection(data.class_section);
     }
     setLoading(false);
   };
 
   if (loading) return <div className="text-xs text-gray-500">Loading...</div>;
 
-  const uniqueClasses = [...new Set(classSections.map(item => item.class_section))].sort();
-  const uniqueSubjects = [...new Set(classSections.map(item => item.subject))].sort();
-
   return (
-    <div className="mt-2 space-y-1">
-      {uniqueClasses.length > 0 && (
+    <div className="mt-2">
+      {classTeacherSection ? (
         <p className="text-xs text-gray-500">
-          Classes: <span className="font-medium text-gray-700">{uniqueClasses.join(', ')}</span>
+          Class Teacher of: <span className="font-medium text-blue-600">{classTeacherSection}</span>
         </p>
-      )}
-      {uniqueSubjects.length > 0 && (
-        <p className="text-xs text-gray-500">
-          Subjects: <span className="font-medium text-gray-700">{uniqueSubjects.join(', ')}</span>
-        </p>
+      ) : (
+        <p className="text-xs text-gray-400">Not a class teacher</p>
       )}
     </div>
   );
@@ -306,6 +301,8 @@ const AddUserModal: React.FC<{ userType: 'student' | 'teacher'; onClose: () => v
   const [classTeacherSection, setClassTeacherSection] = useState<string>('');
   const [newClassSection, setNewClassSection] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [studentClass, setStudentClass] = useState<string>('');
+  const [studentSection, setStudentSection] = useState<string>('');
 
   useEffect(() => {
     if (userType === 'teacher' || userType === 'student') {
@@ -495,19 +492,57 @@ const AddUserModal: React.FC<{ userType: 'student' | 'teacher'; onClose: () => v
           <input type="email" placeholder="Email" required onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
           <input type="tel" placeholder="Phone" onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
           {userType === 'student' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Class-Section *</label>
-              <select
-                required
-                value={formData.class_section || ''}
-                onChange={(e) => setFormData({ ...formData, class_section: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select Class-Section</option>
-                {availableClassSections.map(cs => (
-                  <option key={cs.id} value={cs.class_section}>{cs.class_section}</option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Class *</label>
+                <select
+                  required
+                  value={studentClass}
+                  onChange={(e) => {
+                    setStudentClass(e.target.value);
+                    setStudentSection('');
+                    if (e.target.value && studentSection) {
+                      setFormData({ ...formData, class_section: `${e.target.value}-${studentSection}` });
+                    }
+                  }}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select Class</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                    <option key={num} value={num}>{num}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Section *</label>
+                <select
+                  required
+                  value={studentSection}
+                  onChange={(e) => {
+                    setStudentSection(e.target.value);
+                    if (studentClass && e.target.value) {
+                      setFormData({ ...formData, class_section: `${studentClass}-${e.target.value}` });
+                    }
+                  }}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select Section</option>
+                  {studentClass === '8' || studentClass === '9' || studentClass === '10' ? (
+                    <>
+                      <option value="A">A</option>
+                      <option value="B">B</option>
+                      <option value="C">C</option>
+                      <option value="NEEV">NEEV</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="A">A</option>
+                      <option value="B">B</option>
+                      <option value="C">C</option>
+                    </>
+                  )}
+                </select>
+              </div>
             </div>
           )}
           {userType === 'student' && (
